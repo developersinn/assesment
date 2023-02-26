@@ -19,7 +19,7 @@ return new class extends Migration
             $table->string('domain')->unique();
             $table->string('display_name');
             $table->boolean('turn_customers_into_affiliates')->default(true);
-            $table->float('default_commission_rate')->default(0.1);
+            $table->decimal('default_commission_rate',4,2)->default(0.1);
             $table->timestamps();
         });
     }

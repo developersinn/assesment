@@ -20,7 +20,36 @@ class MerchantService
      */
     public function register(array $data): Merchant
     {
-        // TODO: Complete this method
+        try {
+            // Register the user
+            $user = new User();
+            $user->name = $data['name'];
+            $user->email = $data['email'];
+            $user->password = $data['api_key']; // Store the API key in the password field
+            $user->type = User::TYPE_MERCHANT;
+            $user->save();
+
+            // Create a new merchant associated with the user
+            $merchant = new Merchant();
+            $merchant->user_id = $user->id;
+            $merchant->domain = $data['domain'];
+            $merchant->display_name = $data['name'];
+            $merchant->save();
+            return $merchant;
+
+        } catch (QueryException $e) {
+            // Handle any database errors
+            return response()->json([
+                'error' => 'An error occurred while creating the user and merchant.',
+                'message' => $e->getMessage(),
+            ], 500);
+        } catch (\Exception $e) {
+            // Handle any other errors
+            return response()->json([
+                'error' => 'An error occurred while creating the user and merchant.',
+                'message' => $e->getMessage(),
+            ], 500);
+        }
     }
 
     /**
@@ -31,6 +60,16 @@ class MerchantService
      */
     public function updateMerchant(User $user, array $data)
     {
+        try {
+            $merchant = Merchant::where('user_id', $user->id)->firstOrFail();
+            $merchant->domain = $data['domain'];
+            $merchant->display_name = $data['name'];
+            $merchant->save();
+            return $merchant;
+        } catch (Exception $e) {
+            // Handle the exception
+            echo 'Error: ' . $e->getMessage();
+        }
         // TODO: Complete this method
     }
 
@@ -43,7 +82,20 @@ class MerchantService
      */
     public function findMerchantByEmail(string $email): ?Merchant
     {
-        // TODO: Complete this method
+
+        try {
+            $user = User::where('email', $email)->first();
+            if ($user) {
+                $merchant = Merchant::where('user_id', $user->id)->first();
+                return $merchant ? $merchant : null;
+            } else {
+                return null;
+            }
+
+        } catch (Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return null;
+        }
+        //TODO: Complete this method
     }
 
     /**
@@ -55,6 +107,38 @@ class MerchantService
      */
     public function payout(Affiliate $affiliate)
     {
+        $orders = $this->getAffiliateUnpaidOrders($affiliate);
+
+        if ($orders instanceof \Illuminate\Support\Collection && $orders->isNotEmpty()) {
+            try {
+                // Process each unpaid order through a job
+                foreach ($orders as $order) {
+                    PayoutOrderJob::dispatch($order);
+                }
+            } catch (Exception $e) {
+                return response()->json("error occured ". $e->getMessage());
+            }
+        }
+
+
         // TODO: Complete this method
+    }
+
+    /**
+     * @param Affiliate $affiliate
+     * @return mixed
+     */
+    private function getAffiliateUnpaidOrders(Affiliate $affiliate)
+    {
+        try {
+            $orders = Order::where('merchant_id', $affiliate->merchant_id)
+                ->where('affiliate_id', $affiliate->id)
+                ->where('payout_status', Order::STATUS_UNPAID)
+                ->get();
+            return $orders;
+        } catch (\Exception $e) {
+            throw new Exception("Error getting unpaid orders: " . $e->getMessage());
+        }
+
     }
 }

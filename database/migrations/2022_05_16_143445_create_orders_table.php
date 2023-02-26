@@ -5,8 +5,7 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-return new class extends Migration
-{
+return new class extends Migration {
     /**
      * Run the migrations.
      *
@@ -16,11 +15,12 @@ return new class extends Migration
     {
         Schema::create('orders', function (Blueprint $table) {
             $table->id();
+            $table->string('external_order_id')->nullable();  //its the order_id from external source,
             $table->foreignId('merchant_id')->constrained();
             $table->foreignId('affiliate_id')->nullable()->constrained();
             // TODO: Replace floats with the correct data types (very similar to affiliates table)
-            $table->float('subtotal');
-            $table->float('commission_owed')->default(0.00);
+            $table->decimal('subtotal', 10, 2);
+            $table->decimal('commission_owed', 4, 2)->default(0.00);
             $table->string('payout_status')->default(Order::STATUS_UNPAID);
             $table->string('discount_code')->nullable();
             $table->timestamps();

@@ -27,6 +27,7 @@ class Order extends Model
         'commission_owed',
         'payout_status',
         'customer_email',
+        'external_order_id',
         'created_at'
     ];
 
